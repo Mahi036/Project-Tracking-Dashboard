@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Project Tracking Dashboard</title>
+<title>Global Delivery Feedback Dashboard – Houston Office</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -180,7 +180,7 @@
   <div class="logo">
     <div class="logo-dot"></div>
     <div>
-      <h1>Project Tracking DASHBOARD</h1>
+      <h1>GLOBAL DELIVERY DASHBOARD</h1>
       <span>Houston Office · Knowcraft × Stout</span>
     </div>
   </div>
@@ -235,6 +235,20 @@
     </div>
     <button class="btn-reset" onclick="resetFilters()">↺ Reset</button>
     <div class="file-info" id="file-info"></div>
+    <button class="btn-reset" onclick="toggleDebug()" style="border-color:var(--accent3);color:var(--accent3)" title="Show column detection results">🔍 Debug</button>
+  </div>
+
+  <!-- Debug Panel -->
+  <div id="debug-panel" style="display:none;margin-bottom:20px;background:#0d1117;border:1px solid #f7c26a44;border-radius:14px;padding:20px 24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <span style="font-size:.85rem;font-weight:700;color:var(--accent3);">🔍 Column Detection Report</span>
+      <span style="font-size:.72rem;color:var(--muted);font-family:'DM Mono',monospace;">Green = matched · Red = not found</span>
+    </div>
+    <div id="debug-cols" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px;margin-bottom:16px;"></div>
+    <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px;">
+      <div style="font-size:.72rem;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;">RAW HEADERS DETECTED IN YOUR FILE:</div>
+      <div id="debug-headers" style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--accent);line-height:2;flex-wrap:wrap;display:flex;gap:8px;"></div>
+    </div>
   </div>
 
   <!-- KPI Row -->
@@ -294,14 +308,26 @@ const COL = {
   stoutFeedback: ['stout comment and feedback','stout feedback'],
 };
 
+function cleanHeader(h) {
+  // Remove newlines, carriage returns, extra spaces — normalize completely
+  return h.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').toLowerCase().trim();
+}
+
 function matchCol(headers, keys) {
+  // Exact match after cleaning
   for (const k of keys) {
-    const found = headers.find(h => h.toLowerCase().trim() === k);
+    const found = headers.find(h => cleanHeader(h) === k);
     if (found) return found;
   }
-  // fuzzy
+  // Partial match — header contains the key
   for (const k of keys) {
-    const found = headers.find(h => h.toLowerCase().includes(k.split(' ')[0]));
+    const found = headers.find(h => cleanHeader(h).includes(k));
+    if (found) return found;
+  }
+  // Partial match — key contains part of header
+  for (const k of keys) {
+    const words = k.split(' ').filter(w => w.length > 3);
+    const found = headers.find(h => words.every(w => cleanHeader(h).includes(w)));
     if (found) return found;
   }
   return null;
@@ -342,6 +368,9 @@ function init(data, filename) {
   // Resolve columns
   window.COLS = {};
   for (const [k, v] of Object.entries(COL)) COLS[k] = matchCol(headers, v);
+
+  // Debug panel
+  renderDebug(headers);
 
   // Add quarter column
   allData = allData.map(row => {
@@ -409,6 +438,47 @@ function getFiltered() {
 function resetFilters() {
   ['f-quarter','f-type','f-ptype','f-status','f-member'].forEach(id => document.getElementById(id).value = '');
   render();
+}
+
+function toggleDebug() {
+  const p = document.getElementById('debug-panel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+function renderDebug(headers) {
+  const labels = {
+    project: 'Project Code/Name',
+    dateAssigned: 'Date Assigned',
+    dueDate: 'Due Date',
+    cvaPcs: 'CVA/PCS',
+    projectType: 'Project Type',
+    scope: 'Scope',
+    tasks: 'Brief Description of Tasks',
+    status: 'Open/Closed',
+    member1: 'Team Member #1',
+    member2: 'Team Member #2',
+    member3: 'Team Member #3',
+    stoutPoc: 'Stout Point of Contact',
+    knowcraftFeedback: 'Knowcraft Feedback',
+    stoutFeedback: 'Stout Feedback',
+  };
+  const colsEl = document.getElementById('debug-cols');
+  colsEl.innerHTML = Object.entries(labels).map(([k, label]) => {
+    const matched = COLS[k];
+    const ok = !!matched;
+    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:8px;background:${ok?'#0a2a1a':'#2a0a0a'};border:1px solid ${ok?'#1a4a2a':'#4a1a1a'}">
+      <span style="color:${ok?'#4af2a1':'#ff5e7a'};font-size:.8rem;">${ok?'✓':'✗'}</span>
+      <div>
+        <div style="font-size:.72rem;font-family:'DM Mono',monospace;color:${ok?'#4af2a1':'#ff5e7a'}">${label}</div>
+        <div style="font-size:.68rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px">${matched ? '→ "'+matched.replace(/[\r\n]+/g,' ').trim()+'"' : 'NOT MATCHED'}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const headersEl = document.getElementById('debug-headers');
+  headersEl.innerHTML = headers.map(h =>
+    `<span style="background:#111827;padding:4px 10px;border-radius:6px;border:1px solid var(--border)">${h.replace(/[\r\n]+/g,'↵').trim()}</span>`
+  ).join('');
 }
 
 // ─── RENDER ────────────────────────────────────────────────
