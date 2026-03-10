@@ -71,8 +71,11 @@
   tr:last-child td { border-bottom:none; }
   tr:hover td { background:#12161e; }
   .badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:.68rem; font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
-  .badge-open { background:#1a2a1a; color:var(--accent4); border:1px solid #2a4a2a; }
-  .badge-closed { background:#1a1a2a; color:var(--accent2); border:1px solid #2a2a4a; }
+  .badge-open      { background:#0a2a0a; color:#00e676;  border:1px solid #1a4a1a; }
+  .badge-closed    { background:#1a1a2a; color:#7c6af7;  border:1px solid #2a2a4a; }
+  .badge-completed { background:#1a1a2a; color:#7c6af7;  border:1px solid #2a2a4a; }
+  .badge-draft     { background:#2a1a00; color:#ff9f40;  border:1px solid #4a3a00; }
+  .badge-hold      { background:#2a0a0a; color:#ff5e7a;  border:1px solid #4a1a1a; }
   .badge-pcs { background:#102030; color:var(--accent); border:1px solid #1a3a50; }
   .badge-cva { background:#2a1a10; color:var(--accent3); border:1px solid #4a3a20; }
   .chart-card.full { grid-column: 1 / -1; }
@@ -97,7 +100,7 @@
   <div class="logo">
     <div class="logo-dot"></div>
     <div>
-      <h1>Project Tracker DASHBOARD</h1>
+      <h1>GLOBAL DELIVERY DASHBOARD</h1>
       <span>Houston Office · Knowcraft x Stout</span>
     </div>
   </div>
@@ -110,7 +113,7 @@
 <section id="upload-section">
   <div class="upload-card" id="dropzone">
     <span class="upload-icon">📊</span>
-    <h2>Upload Your Sheet</h2>
+    <h2>Upload Your Feedback Sheet</h2>
     <p>Drop your CSV or Excel (.xlsx / .xls) file here.<br/>All processing happens locally in your browser.</p>
     <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -151,7 +154,7 @@
     </div>
     <div class="filter-group">
       <label>Status</label>
-      <select id="f-status"><option value="">All</option><option value="Open">Open</option><option value="Closed">Closed</option></select>
+      <select id="f-status"><option value="">All</option><option value="Open">Open</option><option value="Closed">Closed</option><option value="Completed">Completed</option><option value="Draft Out">Draft Out</option><option value="On Hold">On Hold</option></select>
     </div>
     <div class="filter-group">
       <label>Team Member</label>
@@ -203,7 +206,7 @@
 
   <div class="charts-grid">
     <div class="chart-card">
-      <h3><span style="background:var(--accent)"></span>Open vs Closed</h3>
+      <h3><span style="background:var(--accent)"></span>Project Status</h3>
       <div class="chart-wrap"><canvas id="ch-status"></canvas></div>
     </div>
     <div class="chart-card">
@@ -317,7 +320,7 @@ function loadSheet(sheetName) {
   const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 
   // Find the first row with 3+ non-empty cells = real header row
-  // Skips rows like "Global Delivery Feedback Form"
+  // Skips rows like "Global Delivery Feedback Form (Houston Office)"
   let headerRowIndex = 0;
   for (let i = 0; i < Math.min(raw.length, 8); i++) {
     const nonEmpty = raw[i].filter(c => String(c).trim() !== '').length;
@@ -593,20 +596,24 @@ function render() {
 }
 
 function renderKPIs(data) {
-  const total   = data.length;
-  const open    = data.filter(r => getVal(r,'status').toLowerCase() === 'open').length;
-  const closed  = data.filter(r => getVal(r,'status').toLowerCase() === 'closed').length;
-  const pcs     = data.filter(r => getVal(r,'cvaPcs').toLowerCase() === 'pcs').length;
-  const cva     = data.filter(r => getVal(r,'cvaPcs').toLowerCase() === 'cva').length;
-  const members = new Set(data.flatMap(r => r.__members)).size;
+  const total     = data.length;
+  const open      = data.filter(r => getVal(r,'status').toLowerCase() === 'open').length;
+  const closed    = data.filter(r => ['closed','completed'].includes(getVal(r,'status').toLowerCase())).length;
+  const draftOut  = data.filter(r => getVal(r,'status').toLowerCase() === 'draft out').length;
+  const onHold    = data.filter(r => getVal(r,'status').toLowerCase() === 'on hold').length;
+  const pcs       = data.filter(r => getVal(r,'cvaPcs').toLowerCase() === 'pcs').length;
+  const cva       = data.filter(r => getVal(r,'cvaPcs').toLowerCase() === 'cva').length;
+  const members   = new Set(data.flatMap(r => r.__members)).size;
 
   document.getElementById('kpi-row').innerHTML = [
-    { label: 'Total Projects', value: total,   sub: 'in current filter',                              c: 'var(--accent)'  },
-    { label: 'Open',           value: open,    sub: `${total ? Math.round(open/total*100)   : 0}%`,   c: 'var(--accent4)' },
-    { label: 'Closed',         value: closed,  sub: `${total ? Math.round(closed/total*100) : 0}%`,   c: 'var(--accent2)' },
-    { label: 'PCS Projects',   value: pcs,     sub: 'type PCS',                                       c: 'var(--accent)'  },
-    { label: 'CVA Projects',   value: cva,     sub: 'type CVA',                                       c: 'var(--accent3)' },
-    { label: 'Team Members',   value: members, sub: 'unique contributors',                             c: 'var(--danger)'  },
+    { label: 'Total Projects',     value: total,    sub: 'in current filter',                                c: 'var(--accent)'  },
+    { label: 'Open',               value: open,     sub: `${total ? Math.round(open/total*100)    : 0}%`,   c: '#00e676'        },
+    { label: 'Closed / Completed', value: closed,   sub: `${total ? Math.round(closed/total*100)  : 0}%`,   c: 'var(--accent2)' },
+    { label: 'Draft Out',          value: draftOut, sub: `${total ? Math.round(draftOut/total*100): 0}%`,   c: '#ff9f40'        },
+    { label: 'On Hold',            value: onHold,   sub: `${total ? Math.round(onHold/total*100)  : 0}%`,   c: '#ff5e7a'        },
+    { label: 'PCS Projects',       value: pcs,      sub: 'type PCS',                                        c: 'var(--accent)'  },
+    { label: 'CVA Projects',       value: cva,      sub: 'type CVA',                                        c: 'var(--accent3)' },
+    { label: 'Team Members',       value: members,  sub: 'unique contributors',                              c: 'var(--danger)'  },
   ].map(k => `
     <div class="kpi-card" style="--c:${k.c}">
       <div class="kpi-label">${k.label}</div>
@@ -668,8 +675,18 @@ function countBy(data, fn) {
 }
 
 function renderCharts(data) {
+  // Project Status chart — unique color per status value
   const sc = countBy(data, r => getVal(r,'status') || 'Unknown');
-  makeDonut('ch-status', Object.keys(sc), Object.values(sc), ['#4af2a1','#7c6af7','#6b7590']);
+  const statusColorMap = {
+    'open':      '#00e676',
+    'closed':    '#7c6af7',
+    'completed': '#7c6af7',
+    'draft out': '#ff9f40',
+    'on hold':   '#ff5e7a',
+    'unknown':   '#6b7590',
+  };
+  const scColors = Object.keys(sc).map(k => statusColorMap[k.toLowerCase()] || '#' + Math.floor(Math.abs(Math.sin(k.length*999)*16777215)).toString(16).padStart(6,'0'));
+  makeDonut('ch-status', Object.keys(sc), Object.values(sc), scColors);
 
   const cc = countBy(data, r => getVal(r,'cvaPcs') || 'Unknown');
   makeDonut('ch-cva', Object.keys(cc), Object.values(cc), ['#00d4ff','#f7c26a','#6b7590']);
@@ -704,7 +721,13 @@ function renderTable(data) {
     { label: 'CVA/PCS',          fn: r => { const v=getVal(r,'cvaPcs'); return v ? `<span class="badge ${v.toLowerCase()==='pcs'?'badge-pcs':'badge-cva'}">${v}</span>` : ''; } },
     { label: 'Project Type',      fn: r => getVal(r,'projectType') },
     { label: 'Scope',             fn: r => getVal(r,'scope') },
-    { label: 'Status',            fn: r => { const v=getVal(r,'status'); return v ? `<span class="badge ${v.toLowerCase()==='open'?'badge-open':'badge-closed'}">${v}</span>` : ''; } },
+    { label: 'Status',            fn: r => {
+      const v = getVal(r,'status');
+      if (!v) return '';
+      const badgeMap = { 'open':'badge-open', 'closed':'badge-closed', 'completed':'badge-completed', 'draft out':'badge-draft', 'on hold':'badge-hold' };
+      const cls = badgeMap[v.toLowerCase()] || 'badge-closed';
+      return `<span class="badge ${cls}">${v}</span>`;
+    } },
     { label: 'Team Members',      fn: r => r.__members.join(', ') },
     { label: 'Stout POC',         fn: r => getVal(r,'stoutPoc') },
     { label: 'Tasks',             fn: r => getVal(r,'tasks') },
