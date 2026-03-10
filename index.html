@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Project Tracker Dashboard</title>
+<title>Global Delivery Feedback Dashboard – Houston Office</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -180,8 +180,8 @@
   <div class="logo">
     <div class="logo-dot"></div>
     <div>
-      <h1>DASHBOARD</h1>
-      <span>Knowcraft × Stout</span>
+      <h1>GLOBAL DELIVERY DASHBOARD</h1>
+      <span>Houston Office · Knowcraft × Stout</span>
     </div>
   </div>
   <div class="privacy-badge">
@@ -209,6 +209,16 @@
   </div>
 </section>
 
+<!-- Sheet Picker Modal -->
+<div id="sheet-modal" style="display:none;position:fixed;inset:0;background:#000000cc;z-index:999;display:none;align-items:center;justify-content:center;">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:36px 40px;max-width:520px;width:90%;box-shadow:0 20px 60px #000a">
+    <div style="font-size:1.2rem;font-weight:800;margin-bottom:6px;">📋 Select a Sheet</div>
+    <div style="font-size:.82rem;color:var(--muted);margin-bottom:24px;font-family:'DM Mono',monospace;">Multiple sheets detected in your file. Pick one to load:</div>
+    <div id="sheet-list" style="display:flex;flex-direction:column;gap:10px;max-height:320px;overflow-y:auto;"></div>
+    <div style="margin-top:20px;font-size:.72rem;color:var(--muted);font-family:'DM Mono',monospace;">You can switch sheets later without re-uploading.</div>
+  </div>
+</div>
+
 <!-- Dashboard -->
 <div id="dashboard">
   <!-- Filter Bar -->
@@ -235,6 +245,7 @@
     </div>
     <button class="btn-reset" onclick="resetFilters()">↺ Reset</button>
     <div class="file-info" id="file-info"></div>
+    <button id="btn-sheet" class="btn-reset" onclick="showSheetPicker()" style="display:none;border-color:var(--accent2);color:var(--accent2)">📋 Switch Sheet</button>
     <button class="btn-reset" onclick="toggleDebug()" style="border-color:var(--accent3);color:var(--accent3)" title="Show column detection results">🔍 Debug</button>
   </div>
 
@@ -334,6 +345,9 @@ function matchCol(headers, keys) {
 }
 
 // ─── FILE UPLOAD ───────────────────────────────────────────
+let loadedWorkbook = null;
+let loadedFilename = '';
+
 document.getElementById('fileInput').addEventListener('change', e => handleFile(e.target.files[0]));
 
 const dz = document.getElementById('dropzone');
@@ -344,20 +358,53 @@ dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag
 function handleFile(file) {
   if (!file) return;
   const name = file.name.toLowerCase();
+  loadedFilename = file.name;
   if (name.endsWith('.csv')) {
     Papa.parse(file, { header: true, skipEmptyLines: true, complete: r => init(r.data, file.name) });
   } else if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
     const reader = new FileReader();
     reader.onload = e => {
-      const wb = XLSX.read(e.target.result, { type: 'binary', cellDates: true });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const data = XLSX.utils.sheet_to_json(ws, { defval: '' });
-      init(data, file.name);
+      loadedWorkbook = XLSX.read(e.target.result, { type: 'binary', cellDates: true });
+      const sheets = loadedWorkbook.SheetNames;
+      if (sheets.length === 1) {
+        loadSheet(sheets[0]);
+      } else {
+        showSheetPicker();
+      }
     };
     reader.readAsBinaryString(file);
   } else {
     alert('Please upload a .csv, .xlsx, or .xls file.');
   }
+}
+
+function loadSheet(sheetName) {
+  hideSheetModal();
+  const ws = loadedWorkbook.Sheets[sheetName];
+  const data = XLSX.utils.sheet_to_json(ws, { defval: '' });
+  init(data, loadedFilename + ' → ' + sheetName);
+}
+
+function showSheetPicker() {
+  if (!loadedWorkbook) return;
+  const modal = document.getElementById('sheet-modal');
+  const list = document.getElementById('sheet-list');
+  list.innerHTML = loadedWorkbook.SheetNames.map(name => `
+    <button onclick="loadSheet('${name.replace(/'/g, "\\'")}')" style="
+      background:var(--surface);border:1px solid var(--border);color:var(--text);
+      padding:14px 18px;border-radius:10px;cursor:pointer;text-align:left;
+      font-family:'Syne',sans-serif;font-size:.88rem;font-weight:600;
+      transition:border-color .2s,background .2s;
+    " onmouseover="this.style.borderColor='var(--accent2)';this.style.background='#1a1a2a'"
+       onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--surface)'">
+      📋 ${name}
+    </button>
+  `).join('');
+  modal.style.display = 'flex';
+}
+
+function hideSheetModal() {
+  document.getElementById('sheet-modal').style.display = 'none';
 }
 
 // ─── INIT ──────────────────────────────────────────────────
@@ -388,6 +435,9 @@ function init(data, filename) {
   populateFilter('f-member', allMembers);
 
   document.getElementById('file-info').innerHTML = `<strong>${filename}</strong> · ${data.length} rows`;
+  if (loadedWorkbook && loadedWorkbook.SheetNames.length > 1) {
+    document.getElementById('btn-sheet').style.display = 'inline-flex';
+  }
 
   document.getElementById('upload-section').style.display = 'none';
   document.getElementById('dashboard').style.display = 'block';
