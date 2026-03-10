@@ -81,6 +81,14 @@
   ::-webkit-scrollbar { width:6px; height:6px; }
   ::-webkit-scrollbar-track { background:var(--bg); }
   ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+  /* Debug tabs */
+  .dbtab { background:transparent; border:none; color:var(--muted); font-family:'Syne',sans-serif; font-size:.75rem; padding:10px 18px; cursor:pointer; border-bottom:2px solid transparent; transition:all .2s; }
+  .dbtab:hover { color:var(--text); }
+  .dbtab-active { color:var(--accent3) !important; border-bottom-color:var(--accent3) !important; }
+  .dbtab-content { }
+  #debug-sample table { font-size:.7rem; }
+  #debug-sample th { font-size:.65rem; }
 </style>
 </head>
 <body>
@@ -89,7 +97,7 @@
   <div class="logo">
     <div class="logo-dot"></div>
     <div>
-      <h1>GLOBAL DELIVERY DASHBOARD</h1>
+      <h1>Project Tracker DASHBOARD</h1>
       <span>Houston Office · Knowcraft x Stout</span>
     </div>
   </div>
@@ -102,7 +110,7 @@
 <section id="upload-section">
   <div class="upload-card" id="dropzone">
     <span class="upload-icon">📊</span>
-    <h2>Upload Your Feedback Sheet</h2>
+    <h2>Upload Your Sheet</h2>
     <p>Drop your CSV or Excel (.xlsx / .xls) file here.<br/>All processing happens locally in your browser.</p>
     <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -156,15 +164,38 @@
   </div>
 
   <!-- Debug Panel -->
-  <div id="debug-panel" style="display:none;margin-bottom:20px;background:#0d1117;border:1px solid #f7c26a44;border-radius:14px;padding:20px 24px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <span style="font-size:.85rem;font-weight:700;color:var(--accent3);">🔍 Column Detection Report</span>
-      <span style="font-size:.72rem;color:var(--muted);font-family:'DM Mono',monospace;">Green = matched · Red = not found</span>
+  <div id="debug-panel" style="display:none;margin-bottom:20px;background:#0d1117;border:1px solid #f7c26a55;border-radius:14px;padding:0;overflow:hidden;">
+    <!-- Debug Tab Bar -->
+    <div style="display:flex;border-bottom:1px solid #1f2531;background:#0a0c10;">
+      <button onclick="showDebugTab('tab-cols')" id="dbtab-cols" class="dbtab dbtab-active">📋 Column Match</button>
+      <button onclick="showDebugTab('tab-raw')" id="dbtab-raw" class="dbtab">🗂 Raw Headers</button>
+      <button onclick="showDebugTab('tab-sample')" id="dbtab-sample" class="dbtab">🔬 Sample Data</button>
+      <button onclick="showDebugTab('tab-counts')" id="dbtab-counts" class="dbtab">📊 Value Counts</button>
+      <button onclick="showDebugTab('tab-info')" id="dbtab-info" class="dbtab">ℹ️ File Info</button>
     </div>
-    <div id="debug-cols" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px;margin-bottom:16px;"></div>
-    <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px;">
-      <div style="font-size:.72rem;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;">RAW HEADERS DETECTED IN YOUR FILE:</div>
-      <div id="debug-headers" style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--accent);line-height:2;flex-wrap:wrap;display:flex;gap:8px;"></div>
+    <!-- Tab: Column Match -->
+    <div id="tab-cols" class="dbtab-content" style="padding:20px 24px;">
+      <p style="font-size:.72rem;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:14px;">Shows which column in your file was matched to each expected field. Green = found, Red = not found.</p>
+      <div id="debug-cols" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px;"></div>
+    </div>
+    <!-- Tab: Raw Headers -->
+    <div id="tab-raw" class="dbtab-content" style="display:none;padding:20px 24px;">
+      <p style="font-size:.72rem;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:14px;">Exact headers read from your file. <strong style="color:var(--accent3)">[NL]</strong> means a newline was found inside the header name.</p>
+      <div id="debug-headers" style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--accent);flex-wrap:wrap;display:flex;gap:8px;"></div>
+    </div>
+    <!-- Tab: Sample Data -->
+    <div id="tab-sample" class="dbtab-content" style="display:none;padding:20px 24px;overflow-x:auto;">
+      <p style="font-size:.72rem;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:14px;">First 5 rows of data as read from your file. Helps verify the header row was detected correctly.</p>
+      <div id="debug-sample"></div>
+    </div>
+    <!-- Tab: Value Counts -->
+    <div id="tab-counts" class="dbtab-content" style="display:none;padding:20px 24px;">
+      <p style="font-size:.72rem;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:14px;">Unique values found in each matched column. If a column shows only 'Unknown' or is empty, the match failed.</p>
+      <div id="debug-counts"></div>
+    </div>
+    <!-- Tab: File Info -->
+    <div id="tab-info" class="dbtab-content" style="display:none;padding:20px 24px;">
+      <div id="debug-fileinfo" style="font-family:'DM Mono',monospace;font-size:.78rem;line-height:2;"></div>
     </div>
   </div>
 
@@ -286,7 +317,7 @@ function loadSheet(sheetName) {
   const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 
   // Find the first row with 3+ non-empty cells = real header row
-  // Skips rows like "Global Delivery Feedback Form (Houston Office)"
+  // Skips rows like "Global Delivery Feedback Form"
   let headerRowIndex = 0;
   for (let i = 0; i < Math.min(raw.length, 8); i++) {
     const nonEmpty = raw[i].filter(c => String(c).trim() !== '').length;
@@ -429,12 +460,29 @@ function resetFilters() {
   render();
 }
 
+// ─── DEBUG ─────────────────────────────────────────────────
+let debugHeaders = [];
+
 function toggleDebug() {
   const p = document.getElementById('debug-panel');
   p.style.display = p.style.display === 'none' ? 'block' : 'none';
 }
 
+function showDebugTab(tabId) {
+  document.querySelectorAll('.dbtab-content').forEach(t => t.style.display = 'none');
+  document.querySelectorAll('.dbtab').forEach(b => b.classList.remove('dbtab-active'));
+  document.getElementById(tabId).style.display = 'block';
+  document.getElementById('dbtab-' + tabId.replace('tab-','') ).classList.add('dbtab-active');
+  // Lazy-render tabs on first open
+  if (tabId === 'tab-sample')  renderDebugSample();
+  if (tabId === 'tab-counts')  renderDebugCounts();
+  if (tabId === 'tab-info')    renderDebugFileInfo();
+}
+
 function renderDebug(headers) {
+  debugHeaders = headers;
+
+  // ── Tab 1: Column Match ──
   const labels = {
     project: 'Project Code/Name', dateAssigned: 'Date Assigned', dueDate: 'Due Date',
     cvaPcs: 'CVA/PCS', projectType: 'Project Type', scope: 'Scope',
@@ -445,18 +493,95 @@ function renderDebug(headers) {
   document.getElementById('debug-cols').innerHTML = Object.entries(labels).map(([k, label]) => {
     const matched = COLS[k];
     const ok = !!matched;
-    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:8px;background:${ok?'#0a2a1a':'#2a0a0a'};border:1px solid ${ok?'#1a4a2a':'#4a1a1a'}">
-      <span style="color:${ok?'#4af2a1':'#ff5e7a'};font-size:.8rem;">${ok?'✓':'✗'}</span>
-      <div>
-        <div style="font-size:.72rem;font-family:'DM Mono',monospace;color:${ok?'#4af2a1':'#ff5e7a'}">${label}</div>
-        <div style="font-size:.68rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px">${matched ? '> "'+matched.replace(/[\r\n]+/g,' ').trim()+'"' : 'NOT MATCHED'}</div>
+    // Show what it was compared against
+    const tried = COL[k] ? COL[k].slice(0,2).join(' / ') : '';
+    return `<div style="display:flex;align-items:flex-start;gap:8px;padding:8px 12px;border-radius:8px;background:${ok?'#0a2a1a':'#2a0a0a'};border:1px solid ${ok?'#1a4a2a':'#4a1a1a'}">
+      <span style="color:${ok?'#4af2a1':'#ff5e7a'};font-size:.9rem;margin-top:2px">${ok?'✓':'✗'}</span>
+      <div style="min-width:0">
+        <div style="font-size:.72rem;font-family:'DM Mono',monospace;color:${ok?'#4af2a1':'#ff5e7a'};font-weight:600">${label}</div>
+        <div style="font-size:.67rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px">
+          ${ok
+            ? 'Matched: <span style="color:#e8ecf4">"' + matched.replace(/[\r\n]+/g,' ').trim() + '"</span>'
+            : 'Not found. Expected: <span style="color:#f7c26a">"' + tried + '"</span>'}
+        </div>
       </div>
     </div>`;
   }).join('');
 
-  document.getElementById('debug-headers').innerHTML = headers.map(h =>
-    `<span style="background:#111827;padding:4px 10px;border-radius:6px;border:1px solid var(--border)">${String(h).replace(/[\r\n]+/g,'[NL]').trim()}</span>`
-  ).join('');
+  // ── Tab 2: Raw Headers ──
+  document.getElementById('debug-headers').innerHTML = headers.length
+    ? headers.map((h, i) => {
+        const hasNL = /[\r\n]/.test(h);
+        const clean = String(h).replace(/[\r\n]+/g,'[NL]').trim();
+        return `<span style="background:${hasNL?'#2a1a00':'#111827'};padding:4px 10px;border-radius:6px;border:1px solid ${hasNL?'#f7c26a55':'var(--border)'};" title="Column index: ${i}">
+          <span style="color:var(--muted);margin-right:4px">${i}.</span>${clean}${hasNL?' <span style="color:#f7c26a">⚠ has newline</span>':''}
+        </span>`;
+      }).join('')
+    : '<span style="color:var(--danger)">No headers detected!</span>';
+}
+
+function renderDebugSample() {
+  if (!allData.length) { document.getElementById('debug-sample').innerHTML = '<p style="color:var(--muted);font-size:.8rem">No data loaded.</p>'; return; }
+  const cols = debugHeaders.slice(0, 10);
+  const rows = allData.slice(0, 5);
+  const th = `<tr>${cols.map(c => `<th>${String(c).replace(/[\r\n]+/g,'[NL]').slice(0,20)}</th>`).join('')}</tr>`;
+  const tb = rows.map(r => `<tr>${cols.map(c => `<td>${String(r[c]||'').slice(0,30)||'—'}</td>`).join('')}</tr>`).join('');
+  document.getElementById('debug-sample').innerHTML = `<table><thead>${th}</thead><tbody>${tb}</tbody></table>`;
+}
+
+function renderDebugCounts() {
+  const el = document.getElementById('debug-counts');
+  if (!allData.length) { el.innerHTML = '<p style="color:var(--muted);font-size:.8rem">No data loaded.</p>'; return; }
+  const checkCols = {
+    'Status (Open/Closed)': COLS.status,
+    'CVA/PCS': COLS.cvaPcs,
+    'Project Type': COLS.projectType,
+    'Scope': COLS.scope,
+    'Team Member #1': COLS.member1,
+    'Due Date': COLS.dueDate,
+  };
+  el.innerHTML = Object.entries(checkCols).map(([label, col]) => {
+    if (!col) return `<div style="margin-bottom:12px"><span style="font-size:.72rem;font-family:'DM Mono',monospace;color:var(--danger)">${label}: column not matched</span></div>`;
+    const vals = {};
+    allData.forEach(r => { const v = String(r[col]||'').trim()||'(empty)'; vals[v]=(vals[v]||0)+1; });
+    const sorted = Object.entries(vals).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    const total = allData.length;
+    return `<div style="margin-bottom:16px">
+      <div style="font-size:.72rem;font-family:'DM Mono',monospace;color:var(--accent3);margin-bottom:6px">${label} <span style="color:var(--muted)">→ "${col}"</span></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${sorted.map(([v,c]) => `
+          <span style="background:#111827;border:1px solid var(--border);padding:3px 10px;border-radius:6px;font-size:.7rem;font-family:'DM Mono',monospace">
+            ${v} <span style="color:var(--accent);margin-left:4px">${c}</span>
+            <span style="color:var(--muted);margin-left:2px">(${Math.round(c/total*100)}%)</span>
+          </span>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderDebugFileInfo() {
+  const el = document.getElementById('debug-fileinfo');
+  const matched = Object.values(COLS).filter(Boolean).length;
+  const total = Object.keys(COL).length;
+  const empty = allData.length ? Object.keys(allData[0]).filter(k => allData.every(r => !String(r[k]||'').trim())).length : 0;
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">
+      ${infoCard('File', loadedFilename || 'N/A', '#00d4ff')}
+      ${infoCard('Total Rows', allData.length, '#4af2a1')}
+      ${infoCard('Total Columns', debugHeaders.length, '#7c6af7')}
+      ${infoCard('Columns Matched', matched + ' / ' + total, matched === total ? '#4af2a1' : '#f7c26a')}
+      ${infoCard('Empty Columns', empty, empty > 0 ? '#ff5e7a' : '#4af2a1')}
+      ${infoCard('Sheet', (loadedWorkbook ? loadedWorkbook.SheetNames.join(', ') : 'CSV'), '#f7c26a')}
+      ${infoCard('Headers with Newlines', debugHeaders.filter(h => /[\r\n]/.test(h)).length, '#ff9f40')}
+      ${infoCard('Rows after Filter', getFiltered().length, '#00d4ff')}
+    </div>`;
+}
+
+function infoCard(label, value, color) {
+  return `<div style="background:#111827;border:1px solid var(--border);border-radius:10px;padding:14px 16px">
+    <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">${label}</div>
+    <div style="font-size:1.1rem;font-weight:700;color:${color}">${value}</div>
+  </div>`;
 }
 
 // ─── RENDER ────────────────────────────────────────────────
