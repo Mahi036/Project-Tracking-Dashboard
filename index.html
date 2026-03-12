@@ -3,24 +3,16 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Project Tracker Dashboard </title>
+<title>Project Tracker Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
 <style>
   :root {
-    --bg: #0a0c10;
-    --surface: #111318;
-    --card: #161a22;
-    --border: #1f2531;
-    --accent: #00d4ff;
-    --accent2: #7c6af7;
-    --accent3: #f7c26a;
-    --accent4: #4af2a1;
-    --text: #e8ecf4;
-    --muted: #6b7590;
-    --danger: #ff5e7a;
+    --bg: #0a0c10; --surface: #111318; --card: #161a22; --border: #1f2531;
+    --accent: #00d4ff; --accent2: #7c6af7; --accent3: #f7c26a; --accent4: #4af2a1;
+    --text: #e8ecf4; --muted: #6b7590; --danger: #ff5e7a;
   }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; min-height: 100vh; overflow-x: hidden; }
@@ -32,7 +24,7 @@
   .privacy-badge { display: flex; align-items: center; gap: 8px; font-family: 'DM Mono', monospace; font-size: .72rem; color: var(--accent4); border: 1px solid var(--accent4); padding: 5px 12px; border-radius: 20px; }
   .privacy-badge svg { width:14px; height:14px; }
   #upload-section { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: calc(100vh - 65px); padding: 40px 20px; background: radial-gradient(ellipse at 50% 60%, #0d1a2e 0%, var(--bg) 70%); }
-  .upload-card { width: 100%; max-width: 560px; border: 2px dashed var(--border); border-radius: 20px; padding: 60px 40px; text-align: center; background: var(--card); cursor: pointer; transition: border-color .25s, background .25s; position: relative; }
+  .upload-card { width: 100%; max-width: 560px; border: 2px dashed var(--border); border-radius: 20px; padding: 60px 40px; text-align: center; background: var(--card); cursor: pointer; transition: border-color .25s, background .25s; }
   .upload-card:hover, .upload-card.drag { border-color: var(--accent); background: #0e1a2a; }
   .upload-icon { font-size: 3rem; margin-bottom: 20px; display: block; }
   .upload-card h2 { font-size: 1.4rem; font-weight: 700; margin-bottom: 10px; }
@@ -60,9 +52,14 @@
   .kpi-sub { font-size:.72rem; color:var(--muted); margin-top:6px; }
   .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px,1fr)); gap: 20px; margin-bottom: 28px; }
   .chart-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 22px 24px; }
-  .chart-card h3 { font-size:.85rem; font-weight:700; letter-spacing:.05em; margin-bottom:18px; color: var(--text); }
-  .chart-card h3 span { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:8px; }
+  .chart-card h3 { font-size:.85rem; font-weight:700; letter-spacing:.05em; margin-bottom:18px; color: var(--text); display:flex; align-items:center; justify-content:space-between; }
+  .chart-card h3 .htitle { display:flex; align-items:center; gap:6px; }
+  .chart-card h3 span.dot { display:inline-block; width:8px; height:8px; border-radius:50%; }
   .chart-wrap { position:relative; height:220px; }
+  /* Timeline toggle */
+  .tl-toggle { display:flex; gap:4px; }
+  .tl-btn { background:var(--surface); border:1px solid var(--border); color:var(--muted); font-family:'DM Mono',monospace; font-size:.68rem; padding:3px 10px; border-radius:6px; cursor:pointer; transition:all .2s; }
+  .tl-btn.active { background:#00d4ff22; border-color:var(--accent); color:var(--accent); }
   .table-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 22px 24px; overflow-x:auto; }
   .table-card h3 { font-size:.85rem; font-weight:700; letter-spacing:.05em; margin-bottom:18px; }
   table { width:100%; border-collapse:collapse; font-size:.78rem; font-family:'DM Mono',monospace; }
@@ -81,15 +78,16 @@
   .chart-card.full { grid-column: 1 / -1; }
   .chart-card.full .chart-wrap { height:200px; }
   .empty { text-align:center; padding:40px; color:var(--muted); font-size:.85rem; }
+  /* sheet picker combined button */
+  .sheet-btn-combined { background:#0a1a2a; border:2px solid var(--accent); color:var(--accent); font-weight:800; }
+  .sheet-btn-combined:hover { background:#00d4ff22 !important; }
   ::-webkit-scrollbar { width:6px; height:6px; }
   ::-webkit-scrollbar-track { background:var(--bg); }
   ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
-
   /* Debug tabs */
   .dbtab { background:transparent; border:none; color:var(--muted); font-family:'Syne',sans-serif; font-size:.75rem; padding:10px 18px; cursor:pointer; border-bottom:2px solid transparent; transition:all .2s; }
   .dbtab:hover { color:var(--text); }
   .dbtab-active { color:var(--accent3) !important; border-bottom-color:var(--accent3) !important; }
-  .dbtab-content { }
   #debug-sample table { font-size:.7rem; }
   #debug-sample th { font-size:.65rem; }
 </style>
@@ -100,8 +98,8 @@
   <div class="logo">
     <div class="logo-dot"></div>
     <div>
-      <h1>GLOBAL DELIVERY DASHBOARD</h1>
-      <span>Houston Office · Knowcraft x Stout</span>
+      <h1>Project Tracker DASHBOARD</h1>
+      <span>Knowcraft x Stout</span>
     </div>
   </div>
   <div class="privacy-badge">
@@ -113,7 +111,7 @@
 <section id="upload-section">
   <div class="upload-card" id="dropzone">
     <span class="upload-icon">📊</span>
-    <h2>Upload Your Feedback Sheet</h2>
+    <h2>Upload Your Sheet</h2>
     <p>Drop your CSV or Excel (.xlsx / .xls) file here.<br/>All processing happens locally in your browser.</p>
     <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -121,9 +119,8 @@
     </button>
     <input type="file" id="fileInput" accept=".csv,.xlsx,.xls"/>
     <div class="privacy-note">
-      <strong>🔒 Privacy Guaranteed:</strong> Your data never leaves this page.<br/>
-      No servers, no uploads, no tracking. Everything runs in your browser.<br/>
-      Safe to use with confidential project data.
+      <strong>Privacy Guaranteed:</strong> Your data never leaves this page.<br/>
+      No servers, no uploads, no tracking. Everything runs in your browser.
     </div>
   </div>
 </section>
@@ -131,9 +128,9 @@
 <!-- Sheet Picker Modal -->
 <div id="sheet-modal" style="display:none;position:fixed;inset:0;background:#000000cc;z-index:999;align-items:center;justify-content:center;">
   <div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:36px 40px;max-width:520px;width:90%;box-shadow:0 20px 60px #000a">
-    <div style="font-size:1.2rem;font-weight:800;margin-bottom:6px;">📋 Select a Sheet</div>
-    <div style="font-size:.82rem;color:var(--muted);margin-bottom:24px;font-family:'DM Mono',monospace;">Multiple sheets detected. Pick one to load:</div>
-    <div id="sheet-list" style="display:flex;flex-direction:column;gap:10px;max-height:320px;overflow-y:auto;"></div>
+    <div style="font-size:1.2rem;font-weight:800;margin-bottom:6px;">Select a Sheet</div>
+    <div style="font-size:.82rem;color:var(--muted);margin-bottom:24px;font-family:'DM Mono',monospace;">Pick a sheet or load all combined:</div>
+    <div id="sheet-list" style="display:flex;flex-direction:column;gap:10px;max-height:360px;overflow-y:auto;"></div>
     <div style="margin-top:20px;font-size:.72rem;color:var(--muted);font-family:'DM Mono',monospace;">You can switch sheets later without re-uploading.</div>
   </div>
 </div>
@@ -154,7 +151,14 @@
     </div>
     <div class="filter-group">
       <label>Status</label>
-      <select id="f-status"><option value="">All</option><option value="Open">Open</option><option value="Closed">Closed</option><option value="Completed">Completed</option><option value="Draft Out">Draft Out</option><option value="On Hold">On Hold</option></select>
+      <select id="f-status">
+        <option value="">All</option>
+        <option value="Open">Open</option>
+        <option value="Closed">Closed</option>
+        <option value="Completed">Completed</option>
+        <option value="Draft Out">Draft Out</option>
+        <option value="On Hold">On Hold</option>
+      </select>
     </div>
     <div class="filter-group">
       <label>Team Member</label>
@@ -162,41 +166,35 @@
     </div>
     <button class="btn-reset" onclick="resetFilters()">Reset</button>
     <div class="file-info" id="file-info"></div>
-    <button id="btn-sheet" class="btn-reset" onclick="showSheetPicker()" style="display:none;border-color:var(--accent2);color:var(--accent2)">📋 Switch Sheet</button>
-    <button class="btn-reset" onclick="toggleDebug()" style="border-color:var(--accent3);color:var(--accent3)">🔍 Debug</button>
+    <button id="btn-sheet" class="btn-reset" onclick="showSheetPicker()" style="display:none;border-color:var(--accent2);color:var(--accent2)">Switch Sheet</button>
+    <button class="btn-reset" onclick="toggleDebug()" style="border-color:var(--accent3);color:var(--accent3)">Debug</button>
   </div>
 
   <!-- Debug Panel -->
   <div id="debug-panel" style="display:none;margin-bottom:20px;background:#0d1117;border:1px solid #f7c26a55;border-radius:14px;padding:0;overflow:hidden;">
-    <!-- Debug Tab Bar -->
     <div style="display:flex;border-bottom:1px solid #1f2531;background:#0a0c10;">
-      <button onclick="showDebugTab('tab-cols')" id="dbtab-cols" class="dbtab dbtab-active">📋 Column Match</button>
-      <button onclick="showDebugTab('tab-raw')" id="dbtab-raw" class="dbtab">🗂 Raw Headers</button>
-      <button onclick="showDebugTab('tab-sample')" id="dbtab-sample" class="dbtab">🔬 Sample Data</button>
-      <button onclick="showDebugTab('tab-counts')" id="dbtab-counts" class="dbtab">📊 Value Counts</button>
-      <button onclick="showDebugTab('tab-info')" id="dbtab-info" class="dbtab">ℹ️ File Info</button>
+      <button onclick="showDebugTab('tab-cols')" id="dbtab-cols" class="dbtab dbtab-active">Column Match</button>
+      <button onclick="showDebugTab('tab-raw')" id="dbtab-raw" class="dbtab">Raw Headers</button>
+      <button onclick="showDebugTab('tab-sample')" id="dbtab-sample" class="dbtab">Sample Data</button>
+      <button onclick="showDebugTab('tab-counts')" id="dbtab-counts" class="dbtab">Value Counts</button>
+      <button onclick="showDebugTab('tab-info')" id="dbtab-info" class="dbtab">File Info</button>
     </div>
-    <!-- Tab: Column Match -->
     <div id="tab-cols" class="dbtab-content" style="padding:20px 24px;">
-      <p style="font-size:.72rem;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:14px;">Shows which column in your file was matched to each expected field. Green = found, Red = not found.</p>
+      <p style="font-size:.72rem;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:14px;">Green = matched · Red = not found</p>
       <div id="debug-cols" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px;"></div>
     </div>
-    <!-- Tab: Raw Headers -->
     <div id="tab-raw" class="dbtab-content" style="display:none;padding:20px 24px;">
-      <p style="font-size:.72rem;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:14px;">Exact headers read from your file. <strong style="color:var(--accent3)">[NL]</strong> means a newline was found inside the header name.</p>
+      <p style="font-size:.72rem;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:14px;">Exact headers from file. [NL] = newline inside header name.</p>
       <div id="debug-headers" style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--accent);flex-wrap:wrap;display:flex;gap:8px;"></div>
     </div>
-    <!-- Tab: Sample Data -->
     <div id="tab-sample" class="dbtab-content" style="display:none;padding:20px 24px;overflow-x:auto;">
-      <p style="font-size:.72rem;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:14px;">First 5 rows of data as read from your file. Helps verify the header row was detected correctly.</p>
+      <p style="font-size:.72rem;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:14px;">First 5 rows of data as read from your file.</p>
       <div id="debug-sample"></div>
     </div>
-    <!-- Tab: Value Counts -->
     <div id="tab-counts" class="dbtab-content" style="display:none;padding:20px 24px;">
-      <p style="font-size:.72rem;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:14px;">Unique values found in each matched column. If a column shows only 'Unknown' or is empty, the match failed.</p>
+      <p style="font-size:.72rem;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:14px;">Unique values per matched column.</p>
       <div id="debug-counts"></div>
     </div>
-    <!-- Tab: File Info -->
     <div id="tab-info" class="dbtab-content" style="display:none;padding:20px 24px;">
       <div id="debug-fileinfo" style="font-family:'DM Mono',monospace;font-size:.78rem;line-height:2;"></div>
     </div>
@@ -206,29 +204,35 @@
 
   <div class="charts-grid">
     <div class="chart-card">
-      <h3><span style="background:var(--accent)"></span>Project Status</h3>
+      <h3><div class="htitle"><span class="dot" style="background:var(--accent)"></span>Project Status</div></h3>
       <div class="chart-wrap"><canvas id="ch-status"></canvas></div>
     </div>
     <div class="chart-card">
-      <h3><span style="background:var(--accent3)"></span>CVA vs PCS</h3>
+      <h3><div class="htitle"><span class="dot" style="background:var(--accent3)"></span>CVA vs PCS</div></h3>
       <div class="chart-wrap"><canvas id="ch-cva"></canvas></div>
     </div>
     <div class="chart-card">
-      <h3><span style="background:var(--accent2)"></span>Project Types</h3>
+      <h3><div class="htitle"><span class="dot" style="background:var(--accent2)"></span>Project Types</div></h3>
       <div class="chart-wrap"><canvas id="ch-ptype"></canvas></div>
     </div>
     <div class="chart-card">
-      <h3><span style="background:var(--accent4)"></span>Projects per Team Member</h3>
+      <h3><div class="htitle"><span class="dot" style="background:var(--accent4)"></span>Projects per Team Member</div></h3>
       <div class="chart-wrap"><canvas id="ch-member"></canvas></div>
     </div>
     <div class="chart-card full">
-      <h3><span style="background:var(--accent)"></span>Projects Over Time (by Due Date)</h3>
+      <h3>
+        <div class="htitle"><span class="dot" style="background:var(--accent)"></span>Projects Over Time (by Due Date)</div>
+        <div class="tl-toggle">
+          <button class="tl-btn active" id="tl-month" onclick="setTimelineMode('month')">Monthly</button>
+          <button class="tl-btn" id="tl-quarter" onclick="setTimelineMode('quarter')">Quarterly</button>
+        </div>
+      </h3>
       <div class="chart-wrap"><canvas id="ch-timeline"></canvas></div>
     </div>
   </div>
 
   <div class="table-card">
-    <h3>📋 Project Records <span id="row-count" style="font-size:.75rem;color:var(--muted);font-weight:400;margin-left:8px;font-family:'DM Mono',monospace;"></span></h3>
+    <h3>Project Records <span id="row-count" style="font-size:.75rem;color:var(--muted);font-weight:400;margin-left:8px;font-family:'DM Mono',monospace;"></span></h3>
     <div id="table-container"></div>
   </div>
 </div>
@@ -239,42 +243,40 @@ let allData = [];
 let charts = {};
 let loadedWorkbook = null;
 let loadedFilename = '';
+let timelineMode = 'month'; // 'month' or 'quarter'
+let debugHeaders = [];
 
-// Exact column names from the actual file (lowercased, newlines stripped)
+// ─── COLUMN ALIASES ────────────────────────────────────────
 const COL = {
-  project:           ['project code / name', 'project code', 'project name', 'code'],
-  dateAssigned:      ['date assigned'],
-  dueDate:           ['due date'],
-  cvaPcs:            ['cva/pcs', 'cva pcs'],
-  projectType:       ['project type'],
-  scope:             ['scope'],
-  tasks:             ['brief description of tasks', 'tasks', 'description'],
-  status:            ['open/closed', 'open closed', 'status'],
-  member1:           ['knowcraft team member #1', 'knowcraft team member 1', 'team member #1', 'team member 1', 'member 1'],
+  project:           ['project code / name', 'project code', 'project name', 'code', 'project'],
+  dateAssigned:      ['date assigned', 'assigned date', 'start date'],
+  dueDate:           ['due date', 'deadline', 'due'],
+  cvaPcs:            ['cva/pcs', 'cva pcs', 'cva / pcs', 'type (cva/pcs)', 'engagement type'],
+  projectType:       ['project type', 'type of project', 'proj type', 'project_type'],
+  scope:             ['scope', 'project scope', 'scope of work'],
+  tasks:             ['brief description of tasks', 'tasks', 'description', 'task description'],
+  status:            ['open/closed', 'open closed', 'status', 'project status', 'open / closed'],
+  member1:           ['knowcraft team member #1', 'knowcraft team member 1', 'team member #1', 'team member 1', 'member 1', 'kc member 1'],
   member2:           ['knowcraft team member #2 (as applicable)', 'knowcraft team member #2', 'knowcraft team member 2', 'team member #2', 'team member 2', 'member 2'],
   member3:           ['knowcraft team member #3 (as applicable)', 'knowcraft team member #3', 'knowcraft team member 3', 'team member #3', 'team member 3', 'member 3'],
-  stoutPoc:          ['stout point of contact', 'stout poc'],
-  knowcraftFeedback: ['knowcraft comment and feedback', 'knowcraft feedback'],
+  stoutPoc:          ['stout point of contact', 'stout poc', 'point of contact', 'poc'],
+  knowcraftFeedback: ['knowcraft comment and feedback', 'knowcraft feedback', 'kc feedback'],
   stoutFeedback:     ['stout comment and feedback', 'stout feedback'],
 };
 
-// Clean a header: strip newlines, extra spaces, lowercase
 function cleanH(h) {
   return String(h).replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').toLowerCase().trim();
 }
 
 function matchCol(headers, keys) {
-  // 1. Exact match
   for (const k of keys) {
     const f = headers.find(h => cleanH(h) === k);
     if (f) return f;
   }
-  // 2. Header contains key
   for (const k of keys) {
     const f = headers.find(h => cleanH(h).includes(k));
     if (f) return f;
   }
-  // 3. All significant words of key appear in header
   for (const k of keys) {
     const words = k.split(' ').filter(w => w.length > 3);
     if (!words.length) continue;
@@ -311,49 +313,72 @@ function handleFile(file) {
   }
 }
 
-function loadSheet(sheetName) {
-  hideSheetModal();
+// ─── SHEET LOADING ─────────────────────────────────────────
+function parseSheetData(sheetName) {
   const ws = loadedWorkbook.Sheets[sheetName];
-
-  // ── FIX 1: Skip merged title rows ──────────────────────────
-  // Read raw 2D array first, no header assumption
   const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 
-  // Find the first row with 3+ non-empty cells = real header row
-  // Skips rows like "Global Delivery Feedback Form (Houston Office)"
+  // Skip merged title rows — find first row with 3+ non-empty cells
   let headerRowIndex = 0;
   for (let i = 0; i < Math.min(raw.length, 8); i++) {
-    const nonEmpty = raw[i].filter(c => String(c).trim() !== '').length;
-    if (nonEmpty >= 3) { headerRowIndex = i; break; }
+    if (raw[i].filter(c => String(c).trim() !== '').length >= 3) { headerRowIndex = i; break; }
   }
 
-  // Build clean header array from that row
   const headerRow = raw[headerRowIndex].map(c =>
     String(c).replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim()
   );
 
-  // ── FIX 2: Filter out __EMPTY / blank columns ───────────────
-  // Only keep columns whose header is non-empty and not __EMPTY
   const validIndices = headerRow
     .map((h, i) => ({ h, i }))
     .filter(({ h }) => h && !h.startsWith('__EMPTY') && h !== '');
 
-  // Build data rows
-  const data = raw.slice(headerRowIndex + 1)
+  return raw.slice(headerRowIndex + 1)
     .map(row => {
       const obj = {};
       validIndices.forEach(({ h, i }) => { obj[h] = row[i] !== undefined ? row[i] : ''; });
       return obj;
     })
     .filter(row => Object.values(row).some(v => String(v).trim() !== ''));
+}
 
+function loadSheet(sheetName) {
+  hideSheetModal();
+  const data = parseSheetData(sheetName);
   init(data, loadedFilename + ' > ' + sheetName);
+}
+
+// ─── CHANGE 1: Load ALL sheets combined ────────────────────
+function loadAllSheets() {
+  hideSheetModal();
+  const combined = [];
+  loadedWorkbook.SheetNames.forEach(name => {
+    try {
+      const rows = parseSheetData(name);
+      // Tag each row with its source sheet
+      rows.forEach(r => { r.__sheet = name; });
+      combined.push(...rows);
+    } catch(e) { console.warn('Skipped sheet:', name, e); }
+  });
+  init(combined, loadedFilename + ' > ALL SHEETS (' + loadedWorkbook.SheetNames.length + ')');
 }
 
 function showSheetPicker() {
   if (!loadedWorkbook) return;
-  const modal = document.getElementById('sheet-modal');
-  document.getElementById('sheet-list').innerHTML = loadedWorkbook.SheetNames.map(name => `
+  // Combined button first, then individual sheets
+  const combinedBtn = `
+    <button onclick="loadAllSheets()" class="sheet-btn-combined" style="
+      background:#0a1a2a;border:2px solid var(--accent);color:var(--accent);
+      padding:14px 18px;border-radius:10px;cursor:pointer;text-align:left;
+      font-family:'Syne',sans-serif;font-size:.88rem;font-weight:800;
+      transition:border-color .2s,background .2s;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:1.1rem;">🗂</span>
+      <div>
+        <div>All Sheets Combined</div>
+        <div style="font-size:.72rem;color:var(--accent);opacity:.7;font-weight:400;margin-top:2px">${loadedWorkbook.SheetNames.length} sheets merged into one view</div>
+      </div>
+    </button>`;
+
+  const sheetBtns = loadedWorkbook.SheetNames.map(name => `
     <button onclick="loadSheet('${name.replace(/'/g, "\\'")}')" style="
       background:var(--surface);border:1px solid var(--border);color:var(--text);
       padding:14px 18px;border-radius:10px;cursor:pointer;text-align:left;
@@ -363,7 +388,12 @@ function showSheetPicker() {
       onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--surface)'">
       📋 ${name}
     </button>`).join('');
-  modal.style.display = 'flex';
+
+  document.getElementById('sheet-list').innerHTML = combinedBtn
+    + '<div style="margin:8px 0;border-top:1px solid var(--border);padding-top:8px;font-size:.68rem;color:var(--muted);font-family:DM Mono,monospace;">— OR PICK A SINGLE SHEET —</div>'
+    + sheetBtns;
+
+  document.getElementById('sheet-modal').style.display = 'flex';
 }
 
 function hideSheetModal() {
@@ -373,45 +403,49 @@ function hideSheetModal() {
 // ─── INIT ──────────────────────────────────────────────────
 function init(data, filename) {
   allData = data;
-  // For CSV path: clean headers and filter __EMPTY
   const rawHeaders = Object.keys(data[0] || {});
   const headers = rawHeaders.filter(h => {
     const c = cleanH(h);
-    return c && !c.startsWith('__empty') && c !== '';
+    return c && !c.startsWith('__empty') && c !== '' && h !== '__sheet';
   });
 
-  // Re-map data to clean keys (CSV path — Excel path already done in loadSheet)
-  if (rawHeaders.some(h => h !== cleanH(h) || h.startsWith('__EMPTY'))) {
-    allData = data.map(row => {
-      const r = {};
-      headers.forEach(h => { r[h] = row[h]; });
-      return r;
-    });
-  }
-
-  // Resolve columns
   window.COLS = {};
   for (const [k, v] of Object.entries(COL)) COLS[k] = matchCol(headers, v);
 
   renderDebug(headers);
 
-  // Compute quarter and members per row
+  // ─── CHANGE 6: Quarter sort fix — validate year is reasonable ──
   allData = allData.map(row => {
     const d = parseDate(getVal(row, 'dueDate'));
-    row.__quarter = d ? `Q${Math.ceil((d.getMonth()+1)/3)} ${d.getFullYear()}` : '';
+    let quarter = '';
+    if (d) {
+      const yr = d.getFullYear();
+      // Only accept years that look real (2000–2040)
+      if (yr >= 2000 && yr <= 2040) {
+        quarter = 'Q' + Math.ceil((d.getMonth()+1)/3) + ' ' + yr;
+      }
+    }
+    row.__quarter = quarter;
     row.__members = [getVal(row,'member1'), getVal(row,'member2'), getVal(row,'member3')].filter(Boolean);
     return row;
   });
 
-  populateFilter('f-quarter', [...new Set(allData.map(r => r.__quarter).filter(Boolean))].sort());
+  // ─── CHANGE 6: Sort quarters properly Q1→Q4 per year ──────────
+  const quarters = [...new Set(allData.map(r => r.__quarter).filter(Boolean))];
+  quarters.sort((a, b) => {
+    const [aq, ay] = a.split(' ');
+    const [bq, by] = b.split(' ');
+    if (ay !== by) return parseInt(ay) - parseInt(by);
+    return parseInt(aq[1]) - parseInt(bq[1]);
+  });
+
+  populateFilter('f-quarter', quarters);
   populateFilter('f-type',    [...new Set(allData.map(r => getVal(r,'cvaPcs')).filter(Boolean))].sort());
   populateFilter('f-ptype',   [...new Set(allData.map(r => getVal(r,'projectType')).filter(Boolean))].sort());
   populateFilter('f-member',  [...new Set(allData.flatMap(r => r.__members))].sort());
 
-  document.getElementById('file-info').innerHTML = `<strong>${filename}</strong> · ${allData.length} rows`;
-  if (loadedWorkbook && loadedWorkbook.SheetNames.length > 1) {
-    document.getElementById('btn-sheet').style.display = 'inline-flex';
-  }
+  document.getElementById('file-info').innerHTML = '<strong>' + filename + '</strong> · ' + allData.length + ' rows';
+  document.getElementById('btn-sheet').style.display = (loadedWorkbook && loadedWorkbook.SheetNames.length > 1) ? 'inline-flex' : 'none';
   document.getElementById('upload-section').style.display = 'none';
   document.getElementById('dashboard').style.display = 'block';
 
@@ -441,6 +475,18 @@ function parseDate(str) {
   return isNaN(d) ? null : d;
 }
 
+// ─── CHANGE 4: Format date only, strip time ────────────────
+function formatDate(val) {
+  if (!val) return '';
+  const d = parseDate(val);
+  if (!d) return String(val).split('T')[0]; // fallback: trim at T
+  const yr = d.getFullYear();
+  if (yr < 2000 || yr > 2040) return '';
+  const mon = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return yr + '-' + mon + '-' + day;
+}
+
 // ─── FILTER ────────────────────────────────────────────────
 function getFiltered() {
   const q  = document.getElementById('f-quarter').value;
@@ -450,9 +496,9 @@ function getFiltered() {
   const mb = document.getElementById('f-member').value;
   return allData.filter(r => {
     if (q  && r.__quarter !== q) return false;
-    if (t  && getVal(r,'cvaPcs').toLowerCase()       !== t.toLowerCase())  return false;
-    if (pt && getVal(r,'projectType').toLowerCase()  !== pt.toLowerCase()) return false;
-    if (st && getVal(r,'status').toLowerCase()       !== st.toLowerCase()) return false;
+    if (t  && getVal(r,'cvaPcs').toLowerCase()      !== t.toLowerCase())  return false;
+    if (pt && getVal(r,'projectType').toLowerCase() !== pt.toLowerCase()) return false;
+    if (st && getVal(r,'status').toLowerCase()      !== st.toLowerCase()) return false;
     if (mb && !r.__members.includes(mb)) return false;
     return true;
   });
@@ -463,9 +509,15 @@ function resetFilters() {
   render();
 }
 
-// ─── DEBUG ─────────────────────────────────────────────────
-let debugHeaders = [];
+// ─── TIMELINE TOGGLE ───────────────────────────────────────
+function setTimelineMode(mode) {
+  timelineMode = mode;
+  document.getElementById('tl-month').classList.toggle('active', mode === 'month');
+  document.getElementById('tl-quarter').classList.toggle('active', mode === 'quarter');
+  renderCharts(getFiltered());
+}
 
+// ─── DEBUG ─────────────────────────────────────────────────
 function toggleDebug() {
   const p = document.getElementById('debug-panel');
   p.style.display = p.style.display === 'none' ? 'block' : 'none';
@@ -475,116 +527,96 @@ function showDebugTab(tabId) {
   document.querySelectorAll('.dbtab-content').forEach(t => t.style.display = 'none');
   document.querySelectorAll('.dbtab').forEach(b => b.classList.remove('dbtab-active'));
   document.getElementById(tabId).style.display = 'block';
-  document.getElementById('dbtab-' + tabId.replace('tab-','') ).classList.add('dbtab-active');
-  // Lazy-render tabs on first open
-  if (tabId === 'tab-sample')  renderDebugSample();
-  if (tabId === 'tab-counts')  renderDebugCounts();
-  if (tabId === 'tab-info')    renderDebugFileInfo();
+  document.getElementById('dbtab-' + tabId.replace('tab-','')).classList.add('dbtab-active');
+  if (tabId === 'tab-sample') renderDebugSample();
+  if (tabId === 'tab-counts') renderDebugCounts();
+  if (tabId === 'tab-info')   renderDebugFileInfo();
 }
 
 function renderDebug(headers) {
   debugHeaders = headers;
-
-  // ── Tab 1: Column Match ──
   const labels = {
-    project: 'Project Code/Name', dateAssigned: 'Date Assigned', dueDate: 'Due Date',
-    cvaPcs: 'CVA/PCS', projectType: 'Project Type', scope: 'Scope',
-    tasks: 'Brief Description of Tasks', status: 'Open/Closed',
-    member1: 'Team Member #1', member2: 'Team Member #2', member3: 'Team Member #3',
-    stoutPoc: 'Stout Point of Contact', knowcraftFeedback: 'Knowcraft Feedback', stoutFeedback: 'Stout Feedback',
+    project:'Project Code/Name', dateAssigned:'Date Assigned', dueDate:'Due Date',
+    cvaPcs:'CVA/PCS', projectType:'Project Type', scope:'Scope',
+    tasks:'Brief Description', status:'Open/Closed',
+    member1:'Team Member #1', member2:'Team Member #2', member3:'Team Member #3',
+    stoutPoc:'Stout POC', knowcraftFeedback:'KC Feedback', stoutFeedback:'Stout Feedback',
   };
   document.getElementById('debug-cols').innerHTML = Object.entries(labels).map(([k, label]) => {
     const matched = COLS[k];
     const ok = !!matched;
-    // Show what it was compared against
     const tried = COL[k] ? COL[k].slice(0,2).join(' / ') : '';
-    return `<div style="display:flex;align-items:flex-start;gap:8px;padding:8px 12px;border-radius:8px;background:${ok?'#0a2a1a':'#2a0a0a'};border:1px solid ${ok?'#1a4a2a':'#4a1a1a'}">
-      <span style="color:${ok?'#4af2a1':'#ff5e7a'};font-size:.9rem;margin-top:2px">${ok?'✓':'✗'}</span>
-      <div style="min-width:0">
-        <div style="font-size:.72rem;font-family:'DM Mono',monospace;color:${ok?'#4af2a1':'#ff5e7a'};font-weight:600">${label}</div>
-        <div style="font-size:.67rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px">
-          ${ok
-            ? 'Matched: <span style="color:#e8ecf4">"' + matched.replace(/[\r\n]+/g,' ').trim() + '"</span>'
-            : 'Not found. Expected: <span style="color:#f7c26a">"' + tried + '"</span>'}
-        </div>
-      </div>
-    </div>`;
+    return '<div style="display:flex;align-items:flex-start;gap:8px;padding:8px 12px;border-radius:8px;background:' + (ok?'#0a2a1a':'#2a0a0a') + ';border:1px solid ' + (ok?'#1a4a2a':'#4a1a1a') + '">'
+      + '<span style="color:' + (ok?'#4af2a1':'#ff5e7a') + ';font-size:.9rem;margin-top:2px">' + (ok?'✓':'✗') + '</span>'
+      + '<div><div style="font-size:.72rem;font-family:DM Mono,monospace;color:' + (ok?'#4af2a1':'#ff5e7a') + ';font-weight:600">' + label + '</div>'
+      + '<div style="font-size:.67rem;color:var(--muted);font-family:DM Mono,monospace;margin-top:3px">'
+      + (ok ? 'Matched: "' + matched.replace(/[\r\n]+/g,' ').trim() + '"' : 'Not found. Expected: "' + tried + '"')
+      + '</div></div></div>';
   }).join('');
 
-  // ── Tab 2: Raw Headers ──
   document.getElementById('debug-headers').innerHTML = headers.length
     ? headers.map((h, i) => {
         const hasNL = /[\r\n]/.test(h);
         const clean = String(h).replace(/[\r\n]+/g,'[NL]').trim();
-        return `<span style="background:${hasNL?'#2a1a00':'#111827'};padding:4px 10px;border-radius:6px;border:1px solid ${hasNL?'#f7c26a55':'var(--border)'};" title="Column index: ${i}">
-          <span style="color:var(--muted);margin-right:4px">${i}.</span>${clean}${hasNL?' <span style="color:#f7c26a">⚠ has newline</span>':''}
-        </span>`;
+        return '<span style="background:' + (hasNL?'#2a1a00':'#111827') + ';padding:4px 10px;border-radius:6px;border:1px solid ' + (hasNL?'#f7c26a55':'var(--border)') + '">'
+          + '<span style="color:var(--muted);margin-right:4px">' + i + '.</span>' + clean
+          + (hasNL ? ' <span style="color:#f7c26a">has newline</span>' : '') + '</span>';
       }).join('')
     : '<span style="color:var(--danger)">No headers detected!</span>';
 }
 
 function renderDebugSample() {
-  if (!allData.length) { document.getElementById('debug-sample').innerHTML = '<p style="color:var(--muted);font-size:.8rem">No data loaded.</p>'; return; }
+  if (!allData.length) { document.getElementById('debug-sample').innerHTML = '<p style="color:var(--muted)">No data loaded.</p>'; return; }
   const cols = debugHeaders.slice(0, 10);
   const rows = allData.slice(0, 5);
-  const th = `<tr>${cols.map(c => `<th>${String(c).replace(/[\r\n]+/g,'[NL]').slice(0,20)}</th>`).join('')}</tr>`;
-  const tb = rows.map(r => `<tr>${cols.map(c => `<td>${String(r[c]||'').slice(0,30)||'—'}</td>`).join('')}</tr>`).join('');
-  document.getElementById('debug-sample').innerHTML = `<table><thead>${th}</thead><tbody>${tb}</tbody></table>`;
+  const th = '<tr>' + cols.map(c => '<th>' + String(c).replace(/[\r\n]+/g,'[NL]').slice(0,20) + '</th>').join('') + '</tr>';
+  const tb = rows.map(r => '<tr>' + cols.map(c => '<td>' + String(r[c]||'').slice(0,30) + '</td>').join('') + '</tr>').join('');
+  document.getElementById('debug-sample').innerHTML = '<table><thead>' + th + '</thead><tbody>' + tb + '</tbody></table>';
 }
 
 function renderDebugCounts() {
   const el = document.getElementById('debug-counts');
-  if (!allData.length) { el.innerHTML = '<p style="color:var(--muted);font-size:.8rem">No data loaded.</p>'; return; }
+  if (!allData.length) { el.innerHTML = '<p style="color:var(--muted)">No data.</p>'; return; }
   const checkCols = {
-    'Status (Open/Closed)': COLS.status,
-    'CVA/PCS': COLS.cvaPcs,
-    'Project Type': COLS.projectType,
-    'Scope': COLS.scope,
-    'Team Member #1': COLS.member1,
-    'Due Date': COLS.dueDate,
+    'Status': COLS.status, 'CVA/PCS': COLS.cvaPcs,
+    'Project Type': COLS.projectType, 'Scope': COLS.scope,
+    'Team Member #1': COLS.member1, 'Due Date': COLS.dueDate,
   };
   el.innerHTML = Object.entries(checkCols).map(([label, col]) => {
-    if (!col) return `<div style="margin-bottom:12px"><span style="font-size:.72rem;font-family:'DM Mono',monospace;color:var(--danger)">${label}: column not matched</span></div>`;
+    if (!col) return '<div style="margin-bottom:12px;font-size:.72rem;font-family:DM Mono,monospace;color:var(--danger)">' + label + ': column not matched</div>';
     const vals = {};
     allData.forEach(r => { const v = String(r[col]||'').trim()||'(empty)'; vals[v]=(vals[v]||0)+1; });
     const sorted = Object.entries(vals).sort((a,b)=>b[1]-a[1]).slice(0,8);
     const total = allData.length;
-    return `<div style="margin-bottom:16px">
-      <div style="font-size:.72rem;font-family:'DM Mono',monospace;color:var(--accent3);margin-bottom:6px">${label} <span style="color:var(--muted)">→ "${col}"</span></div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px">
-        ${sorted.map(([v,c]) => `
-          <span style="background:#111827;border:1px solid var(--border);padding:3px 10px;border-radius:6px;font-size:.7rem;font-family:'DM Mono',monospace">
-            ${v} <span style="color:var(--accent);margin-left:4px">${c}</span>
-            <span style="color:var(--muted);margin-left:2px">(${Math.round(c/total*100)}%)</span>
-          </span>`).join('')}
-      </div>
-    </div>`;
+    return '<div style="margin-bottom:16px"><div style="font-size:.72rem;font-family:DM Mono,monospace;color:var(--accent3);margin-bottom:6px">' + label + ' → "' + col + '"</div>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:6px">'
+      + sorted.map(([v,c]) => '<span style="background:#111827;border:1px solid var(--border);padding:3px 10px;border-radius:6px;font-size:.7rem;font-family:DM Mono,monospace">'
+          + v + ' <span style="color:var(--accent)">' + c + '</span> <span style="color:var(--muted)">(' + Math.round(c/total*100) + '%)</span></span>').join('')
+      + '</div></div>';
   }).join('');
 }
 
 function renderDebugFileInfo() {
-  const el = document.getElementById('debug-fileinfo');
   const matched = Object.values(COLS).filter(Boolean).length;
   const total = Object.keys(COL).length;
   const empty = allData.length ? Object.keys(allData[0]).filter(k => allData.every(r => !String(r[k]||'').trim())).length : 0;
-  el.innerHTML = `
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">
-      ${infoCard('File', loadedFilename || 'N/A', '#00d4ff')}
-      ${infoCard('Total Rows', allData.length, '#4af2a1')}
-      ${infoCard('Total Columns', debugHeaders.length, '#7c6af7')}
-      ${infoCard('Columns Matched', matched + ' / ' + total, matched === total ? '#4af2a1' : '#f7c26a')}
-      ${infoCard('Empty Columns', empty, empty > 0 ? '#ff5e7a' : '#4af2a1')}
-      ${infoCard('Sheet', (loadedWorkbook ? loadedWorkbook.SheetNames.join(', ') : 'CSV'), '#f7c26a')}
-      ${infoCard('Headers with Newlines', debugHeaders.filter(h => /[\r\n]/.test(h)).length, '#ff9f40')}
-      ${infoCard('Rows after Filter', getFiltered().length, '#00d4ff')}
-    </div>`;
+  document.getElementById('debug-fileinfo').innerHTML =
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">'
+    + infoCard('File', loadedFilename || 'N/A', '#00d4ff')
+    + infoCard('Total Rows', allData.length, '#4af2a1')
+    + infoCard('Total Columns', debugHeaders.length, '#7c6af7')
+    + infoCard('Columns Matched', matched + ' / ' + total, matched === total ? '#4af2a1' : '#f7c26a')
+    + infoCard('Empty Columns', empty, empty > 0 ? '#ff5e7a' : '#4af2a1')
+    + infoCard('Sheet', loadedWorkbook ? loadedWorkbook.SheetNames.length + ' sheets' : 'CSV', '#f7c26a')
+    + infoCard('Headers w/ Newlines', debugHeaders.filter(h => /[\r\n]/.test(h)).length, '#ff9f40')
+    + infoCard('Rows after Filter', getFiltered().length, '#00d4ff')
+    + '</div>';
 }
 
 function infoCard(label, value, color) {
-  return `<div style="background:#111827;border:1px solid var(--border);border-radius:10px;padding:14px 16px">
-    <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">${label}</div>
-    <div style="font-size:1.1rem;font-weight:700;color:${color}">${value}</div>
-  </div>`;
+  return '<div style="background:#111827;border:1px solid var(--border);border-radius:10px;padding:14px 16px">'
+    + '<div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">' + label + '</div>'
+    + '<div style="font-size:1.1rem;font-weight:700;color:' + color + '">' + value + '</div></div>';
 }
 
 // ─── RENDER ────────────────────────────────────────────────
@@ -595,31 +627,30 @@ function render() {
   renderTable(data);
 }
 
+// ─── CHANGE 2: Remove Team Members KPI card ────────────────
 function renderKPIs(data) {
-  const total     = data.length;
-  const open      = data.filter(r => getVal(r,'status').toLowerCase() === 'open').length;
-  const closed    = data.filter(r => ['closed','completed'].includes(getVal(r,'status').toLowerCase())).length;
-  const draftOut  = data.filter(r => getVal(r,'status').toLowerCase() === 'draft out').length;
-  const onHold    = data.filter(r => getVal(r,'status').toLowerCase() === 'on hold').length;
-  const pcs       = data.filter(r => getVal(r,'cvaPcs').toLowerCase() === 'pcs').length;
-  const cva       = data.filter(r => getVal(r,'cvaPcs').toLowerCase() === 'cva').length;
-  const members   = new Set(data.flatMap(r => r.__members)).size;
+  const total    = data.length;
+  const open     = data.filter(r => getVal(r,'status').toLowerCase() === 'open').length;
+  const closed   = data.filter(r => ['closed','completed'].includes(getVal(r,'status').toLowerCase())).length;
+  const draftOut = data.filter(r => getVal(r,'status').toLowerCase() === 'draft out').length;
+  const onHold   = data.filter(r => getVal(r,'status').toLowerCase() === 'on hold').length;
+  const pcs      = data.filter(r => getVal(r,'cvaPcs').toLowerCase() === 'pcs').length;
+  const cva      = data.filter(r => getVal(r,'cvaPcs').toLowerCase() === 'cva').length;
 
   document.getElementById('kpi-row').innerHTML = [
-    { label: 'Total Projects',     value: total,    sub: 'in current filter',                                c: 'var(--accent)'  },
-    { label: 'Open',               value: open,     sub: `${total ? Math.round(open/total*100)    : 0}%`,   c: '#00e676'        },
-    { label: 'Closed / Completed', value: closed,   sub: `${total ? Math.round(closed/total*100)  : 0}%`,   c: 'var(--accent2)' },
-    { label: 'Draft Out',          value: draftOut, sub: `${total ? Math.round(draftOut/total*100): 0}%`,   c: '#ff9f40'        },
-    { label: 'On Hold',            value: onHold,   sub: `${total ? Math.round(onHold/total*100)  : 0}%`,   c: '#ff5e7a'        },
-    { label: 'PCS Projects',       value: pcs,      sub: 'type PCS',                                        c: 'var(--accent)'  },
-    { label: 'CVA Projects',       value: cva,      sub: 'type CVA',                                        c: 'var(--accent3)' },
-    { label: 'Team Members',       value: members,  sub: 'unique contributors',                              c: 'var(--danger)'  },
-  ].map(k => `
-    <div class="kpi-card" style="--c:${k.c}">
-      <div class="kpi-label">${k.label}</div>
-      <div class="kpi-value">${k.value}</div>
-      <div class="kpi-sub">${k.sub}</div>
-    </div>`).join('');
+    { label: 'Total Projects',     value: total,    sub: 'in current filter',                                 c: 'var(--accent)'  },
+    { label: 'Open',               value: open,     sub: (total ? Math.round(open/total*100)     : 0) + '%', c: '#00e676'        },
+    { label: 'Closed / Completed', value: closed,   sub: (total ? Math.round(closed/total*100)   : 0) + '%', c: 'var(--accent2)' },
+    { label: 'Draft Out',          value: draftOut, sub: (total ? Math.round(draftOut/total*100) : 0) + '%', c: '#ff9f40'        },
+    { label: 'On Hold',            value: onHold,   sub: (total ? Math.round(onHold/total*100)   : 0) + '%', c: '#ff5e7a'        },
+    { label: 'PCS Projects',       value: pcs,      sub: 'type PCS',                                          c: 'var(--accent)'  },
+    { label: 'CVA Projects',       value: cva,      sub: 'type CVA',                                          c: 'var(--accent3)' },
+  ].map(k =>
+    '<div class="kpi-card" style="--c:' + k.c + '">'
+    + '<div class="kpi-label">' + k.label + '</div>'
+    + '<div class="kpi-value">' + k.value + '</div>'
+    + '<div class="kpi-sub">' + k.sub + '</div></div>'
+  ).join('');
 }
 
 function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
@@ -645,12 +676,13 @@ function makeBar(id, labels, values, color, horizontal) {
     options: { indexAxis: horizontal ? 'y' : 'x', responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { grid: { color: '#1f2531' }, ticks: { color: '#6b7590', font: { family: 'DM Mono', size: 10 } } },
-        y: { grid: { color: '#1f2531' }, ticks: { color: '#6b7590', font: { family: 'DM Mono', size: 10 } } }
+        x: { grid: { color: '#1f2531' }, ticks: { color: '#6b7590', font: { family: 'DM Mono', size: 10 }, precision: 0 } },
+        y: { grid: { color: '#1f2531' }, ticks: { color: '#6b7590', font: { family: 'DM Mono', size: 10 }, precision: 0 } }
       }, animation: { duration: 600 } }
   });
 }
 
+// ─── CHANGE 5: Line chart — whole numbers + monthly/quarterly toggle ──
 function makeLine(id, labels, values) {
   destroyChart(id);
   const ctx = document.getElementById(id).getContext('2d');
@@ -662,8 +694,8 @@ function makeLine(id, labels, values) {
     options: { responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { grid: { color: '#1f2531' }, ticks: { color: '#6b7590', font: { family: 'DM Mono', size: 10 }, maxTicksLimit: 10 } },
-        y: { grid: { color: '#1f2531' }, ticks: { color: '#6b7590', font: { family: 'DM Mono', size: 10 } } }
+        x: { grid: { color: '#1f2531' }, ticks: { color: '#6b7590', font: { family: 'DM Mono', size: 10 }, maxTicksLimit: 12 } },
+        y: { grid: { color: '#1f2531' }, ticks: { color: '#6b7590', font: { family: 'DM Mono', size: 10 }, stepSize: 1, precision: 0 } }
       } }
   });
 }
@@ -675,72 +707,92 @@ function countBy(data, fn) {
 }
 
 function renderCharts(data) {
-  // Project Status chart — unique color per status value
+  // Project Status
+  const statusColorMap = { 'open':'#00e676', 'closed':'#7c6af7', 'completed':'#7c6af7', 'draft out':'#ff9f40', 'on hold':'#ff5e7a', 'unknown':'#6b7590' };
   const sc = countBy(data, r => getVal(r,'status') || 'Unknown');
-  const statusColorMap = {
-    'open':      '#00e676',
-    'closed':    '#7c6af7',
-    'completed': '#7c6af7',
-    'draft out': '#ff9f40',
-    'on hold':   '#ff5e7a',
-    'unknown':   '#6b7590',
-  };
-  const scColors = Object.keys(sc).map(k => statusColorMap[k.toLowerCase()] || '#' + Math.floor(Math.abs(Math.sin(k.length*999)*16777215)).toString(16).padStart(6,'0'));
+  const scColors = Object.keys(sc).map(k => statusColorMap[k.toLowerCase()] || '#aaa');
   makeDonut('ch-status', Object.keys(sc), Object.values(sc), scColors);
 
+  // CVA/PCS
   const cc = countBy(data, r => getVal(r,'cvaPcs') || 'Unknown');
   makeDonut('ch-cva', Object.keys(cc), Object.values(cc), ['#00d4ff','#f7c26a','#6b7590']);
 
+  // Project Types
   const ptc = countBy(data, r => getVal(r,'projectType') || 'Unknown');
   const ptK = Object.keys(ptc).slice(0,8);
   makeBar('ch-ptype', ptK, ptK.map(k => ptc[k]), '#7c6af7', false);
 
+  // ─── CHANGE 3: Team Member chart — filter n/a, none, blank ──
+  const INVALID = new Set(['n/a', 'na', 'none', 'n.a.', '-', '']);
   const mc = {};
-  data.forEach(r => r.__members.forEach(m => { if(m) mc[m] = (mc[m]||0)+1; }));
-  const mK = Object.keys(mc).sort((a,b)=>mc[b]-mc[a]).slice(0,10);
-  makeBar('ch-member', mK, mK.map(k=>mc[k]), '#4af2a1', true);
+  data.forEach(r => r.__members.forEach(m => {
+    const clean = m.trim().toLowerCase();
+    if (m && !INVALID.has(clean)) mc[m] = (mc[m]||0)+1;
+  }));
+  const mK = Object.keys(mc).sort((a,b) => mc[b]-mc[a]).slice(0,10);
+  makeBar('ch-member', mK, mK.map(k => mc[k]), '#4af2a1', true);
 
+  // ─── CHANGE 5: Timeline monthly vs quarterly ─────────────
   const tl = {};
   data.forEach(r => {
     const d = parseDate(getVal(r,'dueDate'));
-    if (d) { const label = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; tl[label]=(tl[label]||0)+1; }
+    if (d) {
+      const yr = d.getFullYear();
+      if (yr < 2000 || yr > 2040) return;
+      let label;
+      if (timelineMode === 'quarter') {
+        label = 'Q' + Math.ceil((d.getMonth()+1)/3) + ' ' + yr;
+      } else {
+        label = yr + '-' + String(d.getMonth()+1).padStart(2,'0');
+      }
+      tl[label] = (tl[label]||0)+1;
+    }
   });
-  const tlK = Object.keys(tl).sort();
-  makeLine('ch-timeline', tlK, tlK.map(k=>tl[k]));
+
+  // Sort timeline labels correctly
+  const tlK = Object.keys(tl).sort((a, b) => {
+    if (timelineMode === 'quarter') {
+      const [aq, ay] = a.split(' '), [bq, by] = b.split(' ');
+      return parseInt(ay) !== parseInt(by) ? parseInt(ay)-parseInt(by) : parseInt(aq[1])-parseInt(bq[1]);
+    }
+    return a.localeCompare(b);
+  });
+  makeLine('ch-timeline', tlK, tlK.map(k => tl[k]));
 }
 
+// ─── TABLE ─────────────────────────────────────────────────
 function renderTable(data) {
-  document.getElementById('row-count').textContent = `(${data.length} rows)`;
+  document.getElementById('row-count').textContent = '(' + data.length + ' rows)';
   if (!data.length) { document.getElementById('table-container').innerHTML = '<div class="empty">No records match the current filters.</div>'; return; }
 
   const cols = [
     { label: 'Project Code/Name', fn: r => getVal(r,'project') },
-    { label: 'Date Assigned',     fn: r => getVal(r,'dateAssigned') },
-    { label: 'Due Date',          fn: r => getVal(r,'dueDate') },
+    // ─── CHANGE 4: Date only, no time ──────────────────────
+    { label: 'Date Assigned',     fn: r => formatDate(getVal(r,'dateAssigned') || (COLS.dateAssigned ? r[COLS.dateAssigned] : '')) },
+    { label: 'Due Date',          fn: r => formatDate(getVal(r,'dueDate') || (COLS.dueDate ? r[COLS.dueDate] : '')) },
     { label: 'Quarter',           fn: r => r.__quarter },
-    { label: 'CVA/PCS',          fn: r => { const v=getVal(r,'cvaPcs'); return v ? `<span class="badge ${v.toLowerCase()==='pcs'?'badge-pcs':'badge-cva'}">${v}</span>` : ''; } },
+    { label: 'CVA/PCS',           fn: r => { const v=getVal(r,'cvaPcs'); return v ? '<span class="badge ' + (v.toLowerCase()==='pcs'?'badge-pcs':'badge-cva') + '">' + v + '</span>' : ''; } },
     { label: 'Project Type',      fn: r => getVal(r,'projectType') },
     { label: 'Scope',             fn: r => getVal(r,'scope') },
     { label: 'Status',            fn: r => {
       const v = getVal(r,'status');
       if (!v) return '';
-      const badgeMap = { 'open':'badge-open', 'closed':'badge-closed', 'completed':'badge-completed', 'draft out':'badge-draft', 'on hold':'badge-hold' };
-      const cls = badgeMap[v.toLowerCase()] || 'badge-closed';
-      return `<span class="badge ${cls}">${v}</span>`;
-    } },
+      const bm = { 'open':'badge-open','closed':'badge-closed','completed':'badge-completed','draft out':'badge-draft','on hold':'badge-hold' };
+      return '<span class="badge ' + (bm[v.toLowerCase()]||'badge-closed') + '">' + v + '</span>';
+    }},
     { label: 'Team Members',      fn: r => r.__members.join(', ') },
     { label: 'Stout POC',         fn: r => getVal(r,'stoutPoc') },
     { label: 'Tasks',             fn: r => getVal(r,'tasks') },
   ];
 
-  const thead = `<tr>${cols.map(c=>`<th>${c.label}</th>`).join('')}</tr>`;
+  const thead = '<tr>' + cols.map(c => '<th>' + c.label + '</th>').join('') + '</tr>';
   const tbody = data.slice(0,200).map(r =>
-    `<tr>${cols.map(c => { const v=c.fn(r); return `<td title="${v.replace(/<[^>]*>/g,'')}">${v||'—'}</td>`; }).join('')}</tr>`
+    '<tr>' + cols.map(c => { const v = c.fn(r); return '<td title="' + v.replace(/<[^>]*>/g,'') + '">' + (v||'—') + '</td>'; }).join('') + '</tr>'
   ).join('');
 
-  document.getElementById('table-container').innerHTML = `<table><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+  document.getElementById('table-container').innerHTML = '<table><thead>' + thead + '</thead><tbody>' + tbody + '</tbody></table>';
   if (data.length > 200) document.getElementById('table-container').insertAdjacentHTML('beforeend',
-    `<div class="empty" style="padding:12px">Showing first 200 of ${data.length} rows. Apply filters to narrow down.</div>`);
+    '<div class="empty" style="padding:12px">Showing first 200 of ' + data.length + ' rows.</div>');
 }
 </script>
 </body>
